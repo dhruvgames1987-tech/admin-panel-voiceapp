@@ -25,6 +25,12 @@ export const Login: React.FC = () => {
                 return;
             }
 
+            // SECURITY: Verify password
+            if (data.password !== password) {
+                setError('Invalid admin credentials');
+                return;
+            }
+
             localStorage.setItem('nexmeet_admin', JSON.stringify(data));
             navigate('/dashboard');
 
