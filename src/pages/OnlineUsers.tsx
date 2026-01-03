@@ -95,8 +95,8 @@ export const OnlineUsers: React.FC = () => {
     const [speakingUsers, setSpeakingUsers] = useState<Set<string>>(new Set());
     // Track speakers per room
     const [roomSpeakers, setRoomSpeakers] = useState<Map<string, string[]>>(new Map());
-    // TODO: Replace with your NEW LiveKit URL
-    const liveKitUrl = 'wss://nexmeet-i6jtqeez.livekit.cloud';
+    // Self-Hosted LiveKit Server
+    const liveKitUrl = 'wss://meet.dhruvmusic.co.in';
 
     // Get the selected room name for operations
     const getSelectedRoomName = useCallback(() => {

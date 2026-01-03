@@ -31,8 +31,8 @@ const InnerController = ({ onClose }: { onClose: () => void }) => {
 
 export const AudioController: React.FC<AudioControllerProps> = ({ roomName, username, onClose }) => {
     const [token, setToken] = useState('');
-    // TODO: Replace with your NEW LiveKit URL
-    const url = 'wss://nexmeet-i6jtqeez.livekit.cloud';
+    // Self-Hosted LiveKit Server
+    const url = 'wss://meet.dhruvmusic.co.in';
 
     useEffect(() => {
         const getToken = async () => {
