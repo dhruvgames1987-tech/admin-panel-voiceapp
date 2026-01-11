@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { StatsCard } from '../components/StatsCard';
 import { Modal } from '../components/Modal';
 import { Users as UsersIcon, UserCheck, UserX, Edit, Trash2, Share2, Smartphone } from 'lucide-react';
+import { getCurrentAdmin } from '../lib/useCurrentAdmin';
 
 interface User {
     id: string;
@@ -16,6 +17,7 @@ interface User {
     device_name?: string;
     device_lock?: boolean;
     password?: string; // Password field for sharing
+    created_by?: string; // ID of admin who created this user
 }
 
 export const Users: React.FC = () => {
@@ -26,6 +28,9 @@ export const Users: React.FC = () => {
     const [editingUserId, setEditingUserId] = useState<string | null>(null);
     const [rooms, setRooms] = useState<any[]>([]);
     const [newlyCreatedUser, setNewlyCreatedUser] = useState<{ username: string; password: string; roomName: string } | null>(null);
+
+    // Get current admin for role-based filtering
+    const currentAdmin = getCurrentAdmin();
 
     useEffect(() => {
         fetchUsers();
@@ -38,10 +43,18 @@ export const Users: React.FC = () => {
     };
 
     const fetchUsers = async () => {
-        const { data, error } = await supabase
+        let query = supabase
             .from('users')
             .select('*')
             .order('created_at', { ascending: false });
+
+        // If current admin is NOT a super_admin, filter by created_by
+        // Super admins see everyone, regular admins only see their created users
+        if (currentAdmin && currentAdmin.role !== 'super_admin') {
+            query = query.eq('created_by', currentAdmin.id);
+        }
+
+        const { data, error } = await query;
 
         if (data) {
             setUsers(data);
@@ -108,7 +121,8 @@ export const Users: React.FC = () => {
                 role: formData.role,
                 status: 'active',
                 password: plainPassword, // In real app, hash this
-                current_room_id: parseInt(formData.room_id), // Now saving the room assignment!
+                current_room_id: parseInt(formData.room_id),
+                created_by: currentAdmin?.id, // Track which admin created this user
             }]);
 
             if (error) {
@@ -322,7 +336,13 @@ export const Users: React.FC = () => {
                             className="w-full bg-white border border-gray-300 rounded-lg p-2.5 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                         >
                             <option value="user">User</option>
-                            <option value="admin">Admin</option>
+                            {/* Only super_admin can create admins */}
+                            {currentAdmin?.isSuperAdmin && (
+                                <>
+                                    <option value="admin">Admin</option>
+                                    <option value="super_admin">Super Admin</option>
+                                </>
+                            )}
                         </select>
                     </div>
                     <div>

@@ -4,6 +4,7 @@ import { UserCard } from '../components/UserCard';
 import { Users, MicOff, Mic, LogOut, Radio, Filter } from 'lucide-react';
 import { muteAllParticipants, unmuteAllParticipants, logoutAllParticipants, logoutUser } from '../lib/api';
 import { AudioController } from '../components/AudioController';
+import { getCurrentAdmin } from '../lib/useCurrentAdmin';
 
 interface User {
     id: string;
@@ -14,6 +15,7 @@ interface User {
     device_id: string;
     role: string;
     current_room_id: number | null;
+    created_by?: string; // ID of admin who created this user
 }
 
 interface Room {
@@ -98,6 +100,9 @@ export const OnlineUsers: React.FC = () => {
     // Self-Hosted LiveKit Server
     const liveKitUrl = 'wss://meet.dhruvmusic.co.in';
 
+    // Get current admin for role-based filtering
+    const currentAdmin = getCurrentAdmin();
+
     // Get the selected room name for operations
     const getSelectedRoomName = useCallback(() => {
         if (selectedRoomId === 'all') return null;
@@ -161,11 +166,18 @@ export const OnlineUsers: React.FC = () => {
     };
 
     const fetchUsers = async () => {
-        const { data, error } = await supabase
+        let query = supabase
             .from('users')
             .select('*')
             .eq('is_online', true)
             .order('username', { ascending: true });
+
+        // If current admin is NOT a super_admin, filter by created_by
+        if (currentAdmin && currentAdmin.role !== 'super_admin') {
+            query = query.eq('created_by', currentAdmin.id);
+        }
+
+        const { data, error } = await query;
 
         if (data) setUsers(data);
         if (error) console.error('Error fetching users:', error);

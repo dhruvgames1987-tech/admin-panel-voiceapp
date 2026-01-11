@@ -17,7 +17,7 @@ export const Login: React.FC = () => {
                 .from('users')
                 .select('*')
                 .eq('username', username)
-                .eq('role', 'admin')
+                .in('role', ['admin', 'super_admin'])
                 .single();
 
             if (error || !data) {
