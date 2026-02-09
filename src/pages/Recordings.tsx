@@ -4,10 +4,14 @@ import { Video, Download, Play, Search } from 'lucide-react';
 
 interface Recording {
     id: string;
-    room_id: number;
-    file_url: string;
+    room_id: number | null;
+    room_name: string | null;
+    file_url: string | null;
     started_at: string;
-    duration: number;
+    ended_at: string | null;
+    duration: number | null;
+    created_by: string | null;
+    recording_type: string | null;
 }
 
 export const Recordings: React.FC = () => {
@@ -31,7 +35,17 @@ export const Recordings: React.FC = () => {
         if (error) console.error(error);
     };
 
-    const formatDuration = (seconds: number) => {
+    const formatDuration = (seconds: number | null, startedAt?: string, endedAt?: string) => {
+        // If duration is null but we have timestamps, calculate it
+        if (seconds === null || seconds === undefined) {
+            if (startedAt && endedAt) {
+                const start = new Date(startedAt).getTime();
+                const end = new Date(endedAt).getTime();
+                seconds = Math.floor((end - start) / 1000);
+            } else {
+                return '-';
+            }
+        }
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -95,14 +109,14 @@ export const Recordings: React.FC = () => {
                         {recordings.map(rec => (
                             <tr key={rec.id} className="hover:bg-gray-50 transition-colors">
                                 <td className="px-6 py-4 font-medium text-gray-900">{new Date(rec.started_at).toLocaleString()}</td>
-                                <td className="px-6 py-4">{rec.room_id}</td>
-                                <td className="px-6 py-4">{formatDuration(rec.duration)}</td>
-                                <td className="px-6 py-4">Unknown</td>
+                                <td className="px-6 py-4">{rec.room_name || rec.room_id || '-'}</td>
+                                <td className="px-6 py-4">{formatDuration(rec.duration, rec.started_at, rec.ended_at ?? undefined)}</td>
+                                <td className="px-6 py-4">{rec.created_by || 'Unknown'}</td>
                                 <td className="px-6 py-4 text-right flex justify-end gap-2">
-                                    <a href={rec.file_url} target="_blank" rel="noreferrer" className="p-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors">
+                                    <a href={rec.file_url ?? '#'} target="_blank" rel="noreferrer" className={`p-2 rounded transition-colors ${rec.file_url ? 'bg-blue-50 text-blue-600 hover:bg-blue-100' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
                                         <Play size={16} />
                                     </a>
-                                    <a href={rec.file_url} download className="p-2 bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors">
+                                    <a href={rec.file_url ?? '#'} download className={`p-2 rounded transition-colors ${rec.file_url ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
                                         <Download size={16} />
                                     </a>
                                 </td>
