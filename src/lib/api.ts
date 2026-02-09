@@ -30,3 +30,21 @@ export const logoutUser = async (roomName: string, identity: string) => {
     const response = await api.post('/logout-user', { roomName, identity });
     return response.data;
 };
+
+// Session recording API functions
+export const startSessionRecording = async (roomName: string, username: string) => {
+    const response = await api.post('/start-session-recording', { roomName, username });
+    return response.data;
+};
+
+export const stopSessionRecording = async (egressId: string) => {
+    const response = await api.post('/stop-session-recording', { egressId });
+    return response.data;
+};
+
+export const getSessionRecordings = async (roomName?: string) => {
+    const params = roomName ? { roomName } : {};
+    const response = await api.get('/session-recordings', { params });
+    return response.data;
+};
+

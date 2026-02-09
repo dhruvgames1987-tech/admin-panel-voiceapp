@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { LiveKitRoom, RoomAudioRenderer, ControlBar, useLocalParticipant } from '@livekit/components-react';
 import '@livekit/components-styles';
-import { generateToken } from '../lib/api';
-import { X, RefreshCw, AlertCircle } from 'lucide-react';
+import { generateToken, startSessionRecording, stopSessionRecording } from '../lib/api';
+import { X, RefreshCw, AlertCircle, Circle, Square } from 'lucide-react';
 
 interface AudioControllerProps {
     roomName: string;
@@ -21,13 +21,53 @@ const getRetryDelay = (attempt: number): number => {
     return baseDelay + jitter;
 };
 
-const InnerController = ({ onClose, connectionState, retryCount, onRetry }: {
+const InnerController = ({
+    onClose,
+    connectionState,
+    retryCount,
+    onRetry,
+    roomName,
+    username
+}: {
     onClose: () => void;
     connectionState: ConnectionState;
     retryCount: number;
     onRetry: () => void;
+    roomName: string;
+    username: string;
 }) => {
     const { isMicrophoneEnabled } = useLocalParticipant();
+    const [isRecording, setIsRecording] = useState(false);
+    const [egressId, setEgressId] = useState<string | null>(null);
+    const [recordingError, setRecordingError] = useState<string | null>(null);
+
+    const handleStartRecording = async () => {
+        try {
+            setRecordingError(null);
+            const result = await startSessionRecording(roomName, username);
+            if (result?.egressId) {
+                setEgressId(result.egressId);
+                setIsRecording(true);
+            }
+        } catch (error: any) {
+            console.error('Failed to start recording:', error);
+            setRecordingError(error?.message || 'Failed to start recording');
+        }
+    };
+
+    const handleStopRecording = async () => {
+        if (!egressId) return;
+
+        try {
+            setRecordingError(null);
+            await stopSessionRecording(egressId);
+            setIsRecording(false);
+            setEgressId(null);
+        } catch (error: any) {
+            console.error('Failed to stop recording:', error);
+            setRecordingError(error?.message || 'Failed to stop recording');
+        }
+    };
 
     return (
         <>
@@ -69,6 +109,22 @@ const InnerController = ({ onClose, connectionState, retryCount, onRetry }: {
                 </div>
             )}
 
+            {/* Recording Error Banner */}
+            {recordingError && (
+                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
+                    <div className="px-4 py-3 rounded-lg shadow-xl border bg-red-900 border-red-700 flex items-center gap-3">
+                        <AlertCircle size={18} className="text-red-300" />
+                        <span className="text-red-100 font-medium">{recordingError}</span>
+                        <button
+                            onClick={() => setRecordingError(null)}
+                            className="px-2 py-1 bg-red-700 hover:bg-red-600 text-white rounded text-sm"
+                        >
+                            Dismiss
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Main Broadcasting Controls */}
             <div className="fixed bottom-4 right-4 bg-gray-900 p-4 rounded-lg shadow-xl border border-gray-700 flex items-center gap-4 z-50">
                 <div className="flex items-center gap-2">
@@ -84,7 +140,31 @@ const InnerController = ({ onClose, connectionState, retryCount, onRetry }: {
                 </div>
 
                 {connectionState === 'CONNECTED' && (
-                    <ControlBar controls={{ microphone: true, camera: false, screenShare: false, chat: false, leave: false }} />
+                    <>
+                        <ControlBar controls={{ microphone: true, camera: false, screenShare: false, chat: false, leave: false }} />
+
+                        {/* Session Recording Toggle */}
+                        <button
+                            onClick={isRecording ? handleStopRecording : handleStartRecording}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${isRecording
+                                ? 'bg-red-600 hover:bg-red-700 text-white'
+                                : 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+                                }`}
+                            title={isRecording ? 'Stop Recording' : 'Start Recording'}
+                        >
+                            {isRecording ? (
+                                <>
+                                    <Square size={16} fill="white" />
+                                    <span className="text-sm font-medium">Stop Rec</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Circle size={16} className="text-red-400" />
+                                    <span className="text-sm font-medium">Record</span>
+                                </>
+                            )}
+                        </button>
+                    </>
                 )}
 
                 <button onClick={onClose} className="p-2 hover:bg-gray-800 rounded-full text-gray-400 hover:text-white">
@@ -234,6 +314,8 @@ export const AudioController: React.FC<AudioControllerProps> = ({ roomName, user
                 connectionState={connectionState}
                 retryCount={retryCount}
                 onRetry={handleManualRetry}
+                roomName={roomName}
+                username={username}
             />
             <RoomAudioRenderer />
         </LiveKitRoom>
