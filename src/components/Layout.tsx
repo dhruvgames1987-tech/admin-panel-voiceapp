@@ -7,7 +7,7 @@ export const Layout: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const handleLogout = () => {
-        localStorage.removeItem('nexmeet_admin');
+        localStorage.removeItem('dtelecom_admin');
         navigate('/');
     };
 
@@ -54,7 +54,7 @@ export const Layout: React.FC = () => {
                             <img src="/logo.png" alt="Logo" className="w-6 h-6 object-contain" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-bold text-white">NexMeet</h1>
+                            <h1 className="text-xl font-bold text-white">D Telecom</h1>
                             <p className="text-xs text-slate-400">Admin Panel</p>
                         </div>
                     </div>

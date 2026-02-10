@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Video, Download, Play, Search } from 'lucide-react';
+import { Video, Download, Play, Pause, Search } from 'lucide-react';
 
 interface Recording {
     id: string;
@@ -17,9 +17,21 @@ interface Recording {
 export const Recordings: React.FC = () => {
     const [recordings, setRecordings] = useState<Recording[]>([]);
     const [filters, setFilters] = useState({ room: '', startDate: '', endDate: '' });
+    const [playingId, setPlayingId] = useState<string | null>(null);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
         fetchRecordings();
+    }, []);
+
+    // Cleanup audio on unmount
+    useEffect(() => {
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current = null;
+            }
+        };
     }, []);
 
     const fetchRecordings = async () => {
@@ -27,7 +39,6 @@ export const Recordings: React.FC = () => {
 
         if (filters.startDate) query = query.gte('started_at', filters.startDate);
         if (filters.endDate) query = query.lte('started_at', filters.endDate);
-        // Room filter would require join or separate logic if room name is needed, for now filtering by ID if provided
         if (filters.room) query = query.eq('room_id', parseInt(filters.room));
 
         const { data, error } = await query;
@@ -36,7 +47,6 @@ export const Recordings: React.FC = () => {
     };
 
     const formatDuration = (seconds: number | null, startedAt?: string, endedAt?: string) => {
-        // If duration is null but we have timestamps, calculate it
         if (seconds === null || seconds === undefined) {
             if (startedAt && endedAt) {
                 const start = new Date(startedAt).getTime();
@@ -49,6 +59,52 @@ export const Recordings: React.FC = () => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const handlePlay = (rec: Recording) => {
+        if (!rec.file_url) {
+            alert('No audio file available for this recording.');
+            return;
+        }
+
+        // If already playing this recording, pause it
+        if (playingId === rec.id && audioRef.current) {
+            audioRef.current.pause();
+            setPlayingId(null);
+            return;
+        }
+
+        // Stop any currently playing audio
+        if (audioRef.current) {
+            audioRef.current.pause();
+        }
+
+        // Create new audio and play
+        const audio = new Audio(rec.file_url);
+        audio.onended = () => setPlayingId(null);
+        audio.onerror = () => {
+            alert('Failed to play this recording. The file may be unavailable.');
+            setPlayingId(null);
+        };
+        audio.play().catch(() => {
+            alert('Failed to play this recording.');
+            setPlayingId(null);
+        });
+        audioRef.current = audio;
+        setPlayingId(rec.id);
+    };
+
+    const handleDownload = (rec: Recording) => {
+        if (!rec.file_url) {
+            alert('No audio file available for download.');
+            return;
+        }
+        const a = document.createElement('a');
+        a.href = rec.file_url;
+        a.download = `recording_${rec.room_name || rec.room_id || 'unknown'}_${new Date(rec.started_at).toISOString().slice(0, 10)}.ogg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     };
 
     return (
@@ -99,9 +155,9 @@ export const Recordings: React.FC = () => {
                     <thead className="bg-gray-50 text-gray-500 uppercase text-xs border-b border-gray-200">
                         <tr>
                             <th className="px-6 py-3 font-semibold">Timestamp</th>
-                            <th className="px-6 py-3 font-semibold">Room ID</th>
+                            <th className="px-6 py-3 font-semibold">Room</th>
                             <th className="px-6 py-3 font-semibold">Duration</th>
-                            <th className="px-6 py-3 font-semibold">Participants</th>
+                            <th className="px-6 py-3 font-semibold">Created By</th>
                             <th className="px-6 py-3 text-right font-semibold">Actions</th>
                         </tr>
                     </thead>
@@ -113,12 +169,28 @@ export const Recordings: React.FC = () => {
                                 <td className="px-6 py-4">{formatDuration(rec.duration, rec.started_at, rec.ended_at ?? undefined)}</td>
                                 <td className="px-6 py-4">{rec.created_by || 'Unknown'}</td>
                                 <td className="px-6 py-4 text-right flex justify-end gap-2">
-                                    <a href={rec.file_url ?? '#'} target="_blank" rel="noreferrer" className={`p-2 rounded transition-colors ${rec.file_url ? 'bg-blue-50 text-blue-600 hover:bg-blue-100' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
-                                        <Play size={16} />
-                                    </a>
-                                    <a href={rec.file_url ?? '#'} download className={`p-2 rounded transition-colors ${rec.file_url ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
+                                    <button
+                                        onClick={() => handlePlay(rec)}
+                                        className={`p-2 rounded transition-colors ${rec.file_url
+                                                ? playingId === rec.id
+                                                    ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                                                    : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            }`}
+                                        title={playingId === rec.id ? 'Pause' : 'Play'}
+                                    >
+                                        {playingId === rec.id ? <Pause size={16} /> : <Play size={16} />}
+                                    </button>
+                                    <button
+                                        onClick={() => handleDownload(rec)}
+                                        className={`p-2 rounded transition-colors ${rec.file_url
+                                                ? 'bg-green-50 text-green-600 hover:bg-green-100'
+                                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            }`}
+                                        title="Download"
+                                    >
                                         <Download size={16} />
-                                    </a>
+                                    </button>
                                 </td>
                             </tr>
                         ))}

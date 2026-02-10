@@ -16,7 +16,7 @@ interface CurrentAdmin extends AdminUser {
 }
 
 export const useCurrentAdmin = (): CurrentAdmin | null => {
-    const stored = localStorage.getItem('nexmeet_admin');
+    const stored = localStorage.getItem('dtelecom_admin');
     if (!stored) return null;
 
     try {
@@ -35,7 +35,7 @@ export const useCurrentAdmin = (): CurrentAdmin | null => {
  * Get current admin synchronously (for non-hook usage)
  */
 export const getCurrentAdmin = (): CurrentAdmin | null => {
-    const stored = localStorage.getItem('nexmeet_admin');
+    const stored = localStorage.getItem('dtelecom_admin');
     if (!stored) return null;
 
     try {

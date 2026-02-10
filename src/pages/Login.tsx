@@ -31,7 +31,7 @@ export const Login: React.FC = () => {
                 return;
             }
 
-            localStorage.setItem('nexmeet_admin', JSON.stringify(data));
+            localStorage.setItem('dtelecom_admin', JSON.stringify(data));
             navigate('/dashboard');
 
         } catch (err) {
@@ -48,7 +48,7 @@ export const Login: React.FC = () => {
                 <div className="relative z-10 text-center">
                     <h1 className="text-5xl font-bold mb-6">Dashboard Login</h1>
                     <p className="text-xl text-blue-100 max-w-md mx-auto">
-                        Secure access to the NexMeet administration panel. Manage users, rooms, and recordings efficiently.
+                        Secure access to the D Telecom administration panel. Manage users, rooms, and recordings efficiently.
                     </p>
                 </div>
                 {/* Decorative Circle */}
@@ -60,8 +60,8 @@ export const Login: React.FC = () => {
             <div className="w-full lg:w-1/2 bg-white flex flex-col justify-center items-center p-8">
                 <div className="w-full max-w-md">
                     <div className="text-center mb-10">
-                        <img src="/logo.png" alt="NexMeet Logo" className="h-24 mx-auto mb-4 object-contain" />
-                        <h2 className="text-3xl font-bold text-gray-900">NexMeet</h2>
+                        <img src="/logo.png" alt="D Telecom Logo" className="h-24 mx-auto mb-4 object-contain" />
+                        <h2 className="text-3xl font-bold text-gray-900">D Telecom</h2>
                     </div>
 
                     {error && (
@@ -105,7 +105,7 @@ export const Login: React.FC = () => {
                     </form>
 
                     <div className="mt-8 text-center text-sm text-gray-500">
-                        &copy; {new Date().getFullYear()} NexMeet. All rights reserved.
+                        &copy; {new Date().getFullYear()} D Telecom. All rights reserved.
                     </div>
                 </div>
             </div>

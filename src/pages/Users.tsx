@@ -183,7 +183,7 @@ export const Users: React.FC = () => {
     };
 
     const shareOnWhatsApp = (username: string, password: string, roomName: string) => {
-        const text = `*NexMeet Login Details*\n\n*Username:* ${username}\n*Password:* ${password}\n*Assigned Room:* ${roomName}\n\nPlease login using the app.`;
+        const text = `*D Telecom Login Details*\n\n*Username:* ${username}\n*Password:* ${password}\n*Assigned Room:* ${roomName}\n\nPlease login using the app.`;
         const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
         window.open(url, '_blank');
     };
@@ -191,7 +191,7 @@ export const Users: React.FC = () => {
     const shareExistingUser = (user: User) => {
         const roomName = rooms.find(r => r.id === user.current_room_id)?.name || 'None';
         const password = user.password || '(Password not available - contact admin)';
-        const text = `*NexMeet Login Details*\n\n*Username:* ${user.username}\n*Password:* ${password}\n*Assigned Room:* ${roomName}\n\nPlease login using the app.`;
+        const text = `*D Telecom Login Details*\n\n*Username:* ${user.username}\n*Password:* ${password}\n*Assigned Room:* ${roomName}\n\nPlease login using the app.`;
         const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
         window.open(url, '_blank');
     };
