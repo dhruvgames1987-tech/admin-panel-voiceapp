@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { API_URL } from '../lib/api';
 import { Video, Download, Play, Pause, Search } from 'lucide-react';
 
 interface Recording {
@@ -61,6 +62,14 @@ export const Recordings: React.FC = () => {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
+    // Build full URL for a recording file
+    const getFullFileUrl = (fileUrl: string) => {
+        // If already absolute URL, use as-is
+        if (fileUrl.startsWith('http')) return fileUrl;
+        // Prepend backend URL to the relative path
+        return `${API_URL}${fileUrl}`;
+    };
+
     const handlePlay = (rec: Recording) => {
         if (!rec.file_url) {
             alert('No audio file available for this recording.');
@@ -80,7 +89,7 @@ export const Recordings: React.FC = () => {
         }
 
         // Create new audio and play
-        const audio = new Audio(rec.file_url);
+        const audio = new Audio(getFullFileUrl(rec.file_url));
         audio.onended = () => setPlayingId(null);
         audio.onerror = () => {
             alert('Failed to play this recording. The file may be unavailable.');
@@ -100,7 +109,7 @@ export const Recordings: React.FC = () => {
             return;
         }
         const a = document.createElement('a');
-        a.href = rec.file_url;
+        a.href = getFullFileUrl(rec.file_url);
         a.download = `recording_${rec.room_name || rec.room_id || 'unknown'}_${new Date(rec.started_at).toISOString().slice(0, 10)}.ogg`;
         document.body.appendChild(a);
         a.click();
@@ -172,10 +181,10 @@ export const Recordings: React.FC = () => {
                                     <button
                                         onClick={() => handlePlay(rec)}
                                         className={`p-2 rounded transition-colors ${rec.file_url
-                                                ? playingId === rec.id
-                                                    ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                                                    : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            ? playingId === rec.id
+                                                ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                                                : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                             }`}
                                         title={playingId === rec.id ? 'Pause' : 'Play'}
                                     >
@@ -184,8 +193,8 @@ export const Recordings: React.FC = () => {
                                     <button
                                         onClick={() => handleDownload(rec)}
                                         className={`p-2 rounded transition-colors ${rec.file_url
-                                                ? 'bg-green-50 text-green-600 hover:bg-green-100'
-                                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            ? 'bg-green-50 text-green-600 hover:bg-green-100'
+                                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                             }`}
                                         title="Download"
                                     >
