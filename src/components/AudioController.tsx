@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { LiveKitRoom, RoomAudioRenderer, ControlBar, useLocalParticipant } from '@livekit/components-react';
 import '@livekit/components-styles';
 import { generateToken, startSessionRecording, stopSessionRecording } from '../lib/api';
-import { X, RefreshCw, AlertCircle, Circle, Square } from 'lucide-react';
+import { X, RefreshCw, AlertCircle, Circle } from 'lucide-react';
 
 interface AudioControllerProps {
     roomName: string;
@@ -40,34 +40,40 @@ const InnerController = ({
     const [isRecording, setIsRecording] = useState(false);
     const [egressId, setEgressId] = useState<string | null>(null);
     const [recordingError, setRecordingError] = useState<string | null>(null);
+    const recordingStarted = useRef(false);
 
-    const handleStartRecording = async () => {
-        try {
-            setRecordingError(null);
-            const result = await startSessionRecording(roomName, username);
-            if (result?.egressId) {
-                setEgressId(result.egressId);
-                setIsRecording(true);
+    // Auto-start recording when connected
+    useEffect(() => {
+        if (connectionState === 'CONNECTED' && !recordingStarted.current) {
+            recordingStarted.current = true;
+            console.log('[AudioController] Auto-starting session recording');
+            (async () => {
+                try {
+                    setRecordingError(null);
+                    const result = await startSessionRecording(roomName, username);
+                    if (result?.egressId) {
+                        setEgressId(result.egressId);
+                        setIsRecording(true);
+                    }
+                } catch (error: any) {
+                    console.error('Failed to auto-start recording:', error);
+                    setRecordingError(error?.message || 'Failed to auto-start recording');
+                }
+            })();
+        }
+    }, [connectionState, roomName, username]);
+
+    // Auto-stop recording on unmount (when admin stops broadcasting)
+    useEffect(() => {
+        return () => {
+            if (egressId) {
+                console.log('[AudioController] Auto-stopping recording on close');
+                stopSessionRecording(egressId).catch(err => {
+                    console.error('Failed to auto-stop recording:', err);
+                });
             }
-        } catch (error: any) {
-            console.error('Failed to start recording:', error);
-            setRecordingError(error?.message || 'Failed to start recording');
-        }
-    };
-
-    const handleStopRecording = async () => {
-        if (!egressId) return;
-
-        try {
-            setRecordingError(null);
-            await stopSessionRecording(egressId);
-            setIsRecording(false);
-            setEgressId(null);
-        } catch (error: any) {
-            console.error('Failed to stop recording:', error);
-            setRecordingError(error?.message || 'Failed to stop recording');
-        }
-    };
+        };
+    }, [egressId]);
 
     return (
         <>
@@ -143,27 +149,25 @@ const InnerController = ({
                     <>
                         <ControlBar controls={{ microphone: true, camera: false, screenShare: false, chat: false, leave: false }} />
 
-                        {/* Session Recording Toggle */}
-                        <button
-                            onClick={isRecording ? handleStopRecording : handleStartRecording}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${isRecording
-                                ? 'bg-red-600 hover:bg-red-700 text-white'
-                                : 'bg-gray-700 hover:bg-gray-600 text-gray-200'
-                                }`}
-                            title={isRecording ? 'Stop Recording' : 'Start Recording'}
+                        {/* Recording Status Indicator */}
+                        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${isRecording
+                            ? 'bg-red-900/50 border border-red-700'
+                            : 'bg-gray-700'
+                            }`}
+                            title={isRecording ? 'Recording in progress' : 'Recording not started'}
                         >
                             {isRecording ? (
                                 <>
-                                    <Square size={16} fill="white" />
-                                    <span className="text-sm font-medium">Stop Rec</span>
+                                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                    <span className="text-sm font-medium text-red-300">REC</span>
                                 </>
                             ) : (
                                 <>
-                                    <Circle size={16} className="text-red-400" />
-                                    <span className="text-sm font-medium">Record</span>
+                                    <Circle size={16} className="text-gray-400" />
+                                    <span className="text-sm font-medium text-gray-400">No Rec</span>
                                 </>
                             )}
-                        </button>
+                        </div>
                     </>
                 )}
 
