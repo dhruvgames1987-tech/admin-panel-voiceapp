@@ -42,11 +42,11 @@ const InnerController = ({
     const [recordingError, setRecordingError] = useState<string | null>(null);
     const recordingStarted = useRef(false);
 
-    // Auto-start recording when connected
+    // Start recording on first mic enable (not on connect)
     useEffect(() => {
-        if (connectionState === 'CONNECTED' && !recordingStarted.current) {
+        if (connectionState === 'CONNECTED' && isMicrophoneEnabled && !recordingStarted.current) {
             recordingStarted.current = true;
-            console.log('[AudioController] Auto-starting session recording');
+            console.log('[AudioController] Starting session recording on first mic press');
             (async () => {
                 try {
                     setRecordingError(null);
@@ -56,12 +56,12 @@ const InnerController = ({
                         setIsRecording(true);
                     }
                 } catch (error: any) {
-                    console.error('Failed to auto-start recording:', error);
-                    setRecordingError(error?.message || 'Failed to auto-start recording');
+                    console.error('Failed to start recording:', error);
+                    setRecordingError(error?.message || 'Failed to start recording');
                 }
             })();
         }
-    }, [connectionState, roomName, username]);
+    }, [connectionState, isMicrophoneEnabled, roomName, username]);
 
     // Auto-stop recording on unmount (when admin stops broadcasting)
     useEffect(() => {
