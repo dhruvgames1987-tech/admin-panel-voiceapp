@@ -4,6 +4,7 @@ import { StatsCard } from '../components/StatsCard';
 import { Radio, CheckCircle, XCircle, Play, StopCircle, Trash2, LogOut, Eraser, Mic, MicOff } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { logoutAllParticipants, muteAllParticipants, unmuteAllParticipants } from '../lib/api';
+import { getCurrentAdmin } from '../lib/useCurrentAdmin';
 
 interface Room {
     id: number;
@@ -19,15 +20,25 @@ export const Rooms: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [roomName, setRoomName] = useState('');
 
+    // Get current admin for role-based filtering
+    const currentAdmin = getCurrentAdmin();
+
     useEffect(() => {
         fetchRooms();
     }, []);
 
     const fetchRooms = async () => {
-        const { data: roomsData, error: roomsError } = await supabase
+        let query = supabase
             .from('rooms')
             .select('*')
             .order('created_at', { ascending: false });
+
+        // Non-super admins only see their own rooms
+        if (currentAdmin && currentAdmin.role !== 'super_admin') {
+            query = query.eq('created_by', currentAdmin.id);
+        }
+
+        const { data: roomsData, error: roomsError } = await query;
 
         if (roomsError) {
             console.error(roomsError);
@@ -61,7 +72,8 @@ export const Rooms: React.FC = () => {
 
         const { error } = await supabase.from('rooms').insert([{
             name: roomName,
-            is_active: true
+            is_active: true,
+            created_by: currentAdmin?.id, // Track which admin created this room
         }]);
 
         if (error) {

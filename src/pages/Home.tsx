@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { StatsCard } from '../components/StatsCard';
 import { Users, Activity, UserX, MicOff, Mic, LogOut } from 'lucide-react';
+import { getCurrentAdmin } from '../lib/useCurrentAdmin';
 
 import { muteAllParticipants, logoutAllParticipants } from '../lib/api';
 
@@ -12,14 +13,28 @@ export const Home: React.FC = () => {
         disabledUsers: 0,
     });
 
+    // Get current admin for role-based filtering
+    const currentAdmin = getCurrentAdmin();
+
     useEffect(() => {
         fetchStats();
     }, []);
 
     const fetchStats = async () => {
-        const { count: total } = await supabase.from('users').select('*', { count: 'exact', head: true });
-        const { count: active } = await supabase.from('users').select('*', { count: 'exact', head: true }).eq('is_online', true);
-        const { count: disabled } = await supabase.from('users').select('*', { count: 'exact', head: true }).eq('status', 'disabled');
+        let totalQuery = supabase.from('users').select('*', { count: 'exact', head: true });
+        let activeQuery = supabase.from('users').select('*', { count: 'exact', head: true }).eq('is_online', true);
+        let disabledQuery = supabase.from('users').select('*', { count: 'exact', head: true }).eq('status', 'disabled');
+
+        // Non-super admins only see their own users' stats
+        if (currentAdmin && currentAdmin.role !== 'super_admin') {
+            totalQuery = totalQuery.eq('created_by', currentAdmin.id);
+            activeQuery = activeQuery.eq('created_by', currentAdmin.id);
+            disabledQuery = disabledQuery.eq('created_by', currentAdmin.id);
+        }
+
+        const { count: total } = await totalQuery;
+        const { count: active } = await activeQuery;
+        const { count: disabled } = await disabledQuery;
 
         setStats({
             totalUsers: total || 0,

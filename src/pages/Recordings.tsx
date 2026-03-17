@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { API_URL } from '../lib/api';
 import { Video, Download, Play, Pause, Search, RefreshCw, AlertCircle, Loader2, CheckCircle, Clock } from 'lucide-react';
+import { getCurrentAdmin } from '../lib/useCurrentAdmin';
 
 interface Recording {
     id: string;
@@ -26,6 +27,9 @@ export const Recordings: React.FC = () => {
     const [refreshing, setRefreshing] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    // Get current admin for role-based filtering
+    const currentAdmin = getCurrentAdmin();
 
     useEffect(() => {
         fetchRecordings(true);
@@ -58,10 +62,31 @@ export const Recordings: React.FC = () => {
         setError(null);
 
         try {
+            // For non-super admins, first get their room IDs to filter recordings
+            let adminRoomIds: number[] | null = null;
+            if (currentAdmin && currentAdmin.role !== 'super_admin') {
+                const { data: adminRooms } = await supabase
+                    .from('rooms')
+                    .select('id')
+                    .eq('created_by', currentAdmin.id);
+                adminRoomIds = adminRooms ? adminRooms.map(r => r.id) : [];
+            }
+
             let query = supabase
                 .from('recordings')
                 .select('*')
                 .order('started_at', { ascending: false });
+
+            // Filter by admin's rooms if not super_admin
+            if (adminRoomIds !== null) {
+                if (adminRoomIds.length === 0) {
+                    // Admin has no rooms, show empty
+                    setRecordings([]);
+                    if (showLoader) setLoading(false);
+                    return;
+                }
+                query = query.in('room_id', adminRoomIds);
+            }
 
             if (filters.startDate) query = query.gte('started_at', filters.startDate);
             if (filters.endDate) query = query.lte('started_at', filters.endDate);

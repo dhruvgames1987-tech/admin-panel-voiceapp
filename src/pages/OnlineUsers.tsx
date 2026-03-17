@@ -155,11 +155,18 @@ export const OnlineUsers: React.FC = () => {
     }, []);
 
     const fetchRooms = async () => {
-        const { data, error } = await supabase
+        let query = supabase
             .from('rooms')
             .select('*')
             .eq('is_active', true)
             .order('name', { ascending: true });
+
+        // Non-super admins only see their own rooms
+        if (currentAdmin && currentAdmin.role !== 'super_admin') {
+            query = query.eq('created_by', currentAdmin.id);
+        }
+
+        const { data, error } = await query;
 
         if (data) setRooms(data);
         if (error) console.error('Error fetching rooms:', error);

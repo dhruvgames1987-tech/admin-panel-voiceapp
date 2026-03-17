@@ -38,7 +38,14 @@ export const Users: React.FC = () => {
     }, []);
 
     const fetchRooms = async () => {
-        const { data } = await supabase.from('rooms').select('*').eq('is_active', true);
+        let query = supabase.from('rooms').select('*').eq('is_active', true);
+
+        // Non-super admins only see their own rooms in the dropdown
+        if (currentAdmin && currentAdmin.role !== 'super_admin') {
+            query = query.eq('created_by', currentAdmin.id);
+        }
+
+        const { data } = await query;
         if (data) setRooms(data);
     };
 
