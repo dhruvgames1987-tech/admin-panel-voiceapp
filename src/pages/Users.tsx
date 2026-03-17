@@ -21,16 +21,16 @@ interface User {
 }
 
 export const Users: React.FC = () => {
+    const currentAdmin = getCurrentAdmin();
+    const initialRole = currentAdmin?.isSuperAdmin ? 'admin' : 'user';
+
     const [users, setUsers] = useState<User[]>([]);
     const [stats, setStats] = useState({ total: 0, active: 0, disabled: 0 });
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [formData, setFormData] = useState({ username: '', password: '', full_name: '', room_id: '', notes: '', role: 'user' });
+    const [formData, setFormData] = useState({ username: '', password: '', full_name: '', room_id: '', notes: '', role: initialRole });
     const [editingUserId, setEditingUserId] = useState<string | null>(null);
     const [rooms, setRooms] = useState<any[]>([]);
     const [newlyCreatedUser, setNewlyCreatedUser] = useState<{ username: string; password: string; roomName: string } | null>(null);
-
-    // Get current admin for role-based filtering
-    const currentAdmin = getCurrentAdmin();
 
     useEffect(() => {
         fetchUsers();
@@ -114,7 +114,7 @@ export const Users: React.FC = () => {
                 alert(`User updated successfully!\nAssigned to room: ${roomName}`);
                 setIsModalOpen(false);
                 setEditingUserId(null);
-                setFormData({ username: '', password: '', full_name: '', room_id: '', notes: '', role: 'user' });
+                setFormData({ username: '', password: '', full_name: '', room_id: '', notes: '', role: initialRole });
                 fetchUsers();
             }
         } else {
@@ -142,7 +142,7 @@ export const Users: React.FC = () => {
                     roomName: roomName
                 });
                 setIsModalOpen(false);
-                setFormData({ username: '', password: '', full_name: '', room_id: '', notes: '', role: 'user' });
+                setFormData({ username: '', password: '', full_name: '', room_id: '', notes: '', role: initialRole });
                 fetchUsers();
             }
         }
@@ -342,13 +342,14 @@ export const Users: React.FC = () => {
                             onChange={e => setFormData({ ...formData, role: e.target.value })}
                             className="w-full bg-white border border-gray-300 rounded-lg p-2.5 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                         >
-                            <option value="user">User</option>
-                            {/* Only super_admin can create admins */}
-                            {currentAdmin?.isSuperAdmin && (
+                            {/* Super admins can only create admins or super_admins. Regular admins can only create users. */}
+                            {currentAdmin?.isSuperAdmin ? (
                                 <>
                                     <option value="admin">Admin</option>
                                     <option value="super_admin">Super Admin</option>
                                 </>
+                            ) : (
+                                <option value="user">User</option>
                             )}
                         </select>
                     </div>
