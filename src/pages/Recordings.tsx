@@ -62,45 +62,58 @@ export const Recordings: React.FC = () => {
         setError(null);
 
         try {
-            // For non-super admins, first get their room IDs to filter recordings
-            let adminRoomIds: number[] | null = null;
             if (currentAdmin && currentAdmin.role !== 'super_admin') {
+                // For non-super admins: get their room IDs
                 const { data: adminRooms } = await supabase
                     .from('rooms')
                     .select('id')
                     .eq('created_by', currentAdmin.id);
-                adminRoomIds = adminRooms ? adminRooms.map(r => r.id) : [];
-            }
+                const adminRoomIds: number[] = adminRooms ? adminRooms.map(r => r.id) : [];
 
-            let query = supabase
-                .from('recordings')
-                .select('*')
-                .order('started_at', { ascending: false });
+                // Build filter: recordings in admin's rooms OR created by admin's username
+                let query = supabase
+                    .from('recordings')
+                    .select('*')
+                    .order('started_at', { ascending: false });
 
-            // Filter by admin's rooms if not super_admin
-            if (adminRoomIds !== null) {
-                if (adminRoomIds.length === 0) {
-                    // Admin has no rooms, show empty
-                    setRecordings([]);
-                    if (showLoader) setLoading(false);
+                if (adminRoomIds.length > 0) {
+                    // Show recordings in admin's rooms OR created by this admin (by username)
+                    query = query.or(`room_id.in.(${adminRoomIds.join(',')}),created_by.eq.${currentAdmin.username}`);
+                } else {
+                    // Admin has no rooms, only show recordings that they created themselves
+                    query = query.eq('created_by', currentAdmin.username);
+                }
+
+                if (filters.startDate) query = query.gte('started_at', filters.startDate);
+                if (filters.endDate) query = query.lte('started_at', filters.endDate);
+                if (filters.room) query = query.eq('room_id', parseInt(filters.room));
+
+                const { data, error: queryError } = await query;
+                if (queryError) {
+                    console.error('Supabase query error:', queryError);
+                    setError(`Failed to load recordings: ${queryError.message}`);
                     return;
                 }
-                query = query.in('room_id', adminRoomIds);
+                setRecordings(data || []);
+            } else {
+                // Super admin: see all recordings
+                let query = supabase
+                    .from('recordings')
+                    .select('*')
+                    .order('started_at', { ascending: false });
+
+                if (filters.startDate) query = query.gte('started_at', filters.startDate);
+                if (filters.endDate) query = query.lte('started_at', filters.endDate);
+                if (filters.room) query = query.eq('room_id', parseInt(filters.room));
+
+                const { data, error: queryError } = await query;
+                if (queryError) {
+                    console.error('Supabase query error:', queryError);
+                    setError(`Failed to load recordings: ${queryError.message}`);
+                    return;
+                }
+                setRecordings(data || []);
             }
-
-            if (filters.startDate) query = query.gte('started_at', filters.startDate);
-            if (filters.endDate) query = query.lte('started_at', filters.endDate);
-            if (filters.room) query = query.eq('room_id', parseInt(filters.room));
-
-            const { data, error: queryError } = await query;
-
-            if (queryError) {
-                console.error('Supabase query error:', queryError);
-                setError(`Failed to load recordings: ${queryError.message}`);
-                return;
-            }
-
-            setRecordings(data || []);
         } catch (err: any) {
             console.error('Fetch recordings error:', err);
             setError(err?.message || 'Failed to load recordings. Please try again.');
@@ -108,6 +121,7 @@ export const Recordings: React.FC = () => {
             if (showLoader) setLoading(false);
         }
     };
+
 
     const handleRefresh = async () => {
         setRefreshing(true);
