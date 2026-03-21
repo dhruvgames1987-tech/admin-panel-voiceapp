@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Users, Radio, Activity, Video, LogOut, Home, Menu, X } from 'lucide-react';
+import { Users, Radio, Activity, Video, LogOut, Home, Menu, X, Megaphone } from 'lucide-react';
 
 export const Layout: React.FC = () => {
     const navigate = useNavigate();
@@ -17,6 +17,7 @@ export const Layout: React.FC = () => {
         { path: '/rooms', label: 'Rooms', icon: Radio },
         { path: '/online', label: 'Online Users', icon: Activity },
         { path: '/recordings', label: 'Recordings', icon: Video },
+        { path: '/announcements', label: 'Announcements', icon: Megaphone },
     ];
 
     const closeMobileMenu = () => {
