@@ -43,9 +43,14 @@ export const Announcements: React.FC = () => {
         let query = supabase
             .from('announcements')
             .select('*')
+            .eq('target_role', dbTargetRole)  // Super admin only sees admin-targeted, admins only see user-targeted
             .order('created_at', { ascending: false });
 
         if (!isSuperAdmin) {
+            // Regular admin only sees their own announcements
+            query = query.eq('created_by', currentAdmin?.id);
+        } else {
+            // Super admin only sees announcements THEY created (for admins)
             query = query.eq('created_by', currentAdmin?.id);
         }
 
@@ -56,6 +61,7 @@ export const Announcements: React.FC = () => {
             setAnnouncements(data);
         }
     };
+
 
     const fetchTargetUsers = async () => {
         let query = supabase

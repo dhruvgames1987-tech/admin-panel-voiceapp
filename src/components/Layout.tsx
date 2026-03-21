@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Users, Radio, Activity, Video, LogOut, Home, Menu, X, Megaphone } from 'lucide-react';
+import { Users, Radio, Activity, Video, LogOut, Home, Menu, X, Megaphone, ShieldCheck } from 'lucide-react';
+import { getCurrentAdmin } from '../lib/useCurrentAdmin';
 
 export const Layout: React.FC = () => {
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const currentAdmin = getCurrentAdmin();
 
     const handleLogout = () => {
         localStorage.removeItem('dtelecom_admin');
@@ -56,7 +58,13 @@ export const Layout: React.FC = () => {
                         </div>
                         <div>
                             <h1 className="text-xl font-bold text-white">D Telecom</h1>
-                            <p className="text-xs text-slate-400">Admin Panel</p>
+                            {currentAdmin?.isSuperAdmin ? (
+                                <p className="text-xs text-amber-400 flex items-center gap-1">
+                                    <ShieldCheck size={11} /> Super Admin
+                                </p>
+                            ) : (
+                                <p className="text-xs text-slate-400">Admin Panel</p>
+                            )}
                         </div>
                     </div>
                 </div>
